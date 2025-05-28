@@ -1,0 +1,138 @@
+// Override Bootstrap variables (must come *before* Bootstrap import)
+$primary: #003366; // Deep blue for headers
+$font-family-sans-serif: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+// Add custom styles
+body {
+  background-color: #f8f9fa;
+}
+
+h1, h2, h3 {
+  color: $primary;
+  font-weight: 600;
+}
+
+// =====================
+// Survey Form Styling
+// =====================
+
+/* Card layout only for the form container */
+.survey-form-card {
+  border-radius: 1rem;
+  border: 1px solid #dee2e6;
+  background-color: white;
+  box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+}
+
+/* Table enhancements */
+.survey-form-card table th,
+.survey-form-card table td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.survey-form-card table th:first-child,
+.survey-form-card table td:first-child {
+  text-align: left;
+  width: 45%;
+}
+
+/* Progress bar */
+.survey-progress {
+  height: 24px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Buttons in form */
+.survey-nav-btn {
+  min-width: 120px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.survey-nav-btn:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Radio input */
+input.question-radio {
+  transform: scale(1.3);
+}
+
+/* --- Final Survey Results Styling --- */
+
+.section-header {
+  cursor: pointer;
+  background-color: #f0f0f0;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.section-header:hover {
+  background-color: #e2e6ea;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.icon {
+  margin-right: 0.5rem;
+}
+
+.badge-response {
+  font-weight: 500;
+  padding: 0.3em 0.7em;
+  border-radius: 0.4em;
+  font-size: 0.9em;
+}
+
+.badge-response.sd { background-color: #f8d7da; color: #721c24; }   /* Strongly Disagree */
+.badge-response.d  { background-color: #fce5cd; color: #7f6000; }   /* Disagree */
+.badge-response.a  { background-color: #d4edda; color: #155724; }   /* Agree */
+.badge-response.sa { background-color: #cce5ff; color: #004085; }   /* Strongly Agree */
+
+.card-body h5 {
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+}
+
+#invitation-link-container {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.table-slight-red {
+  background-color: #d4edda !important;  // Green (Synergized)
+  color: #155724 !important;
+}
+
+.table-mild-red {
+  background-color: #fff3cd !important;  // Yellow (Slightly Misaligned)
+  color: #856404 !important;
+}
+
+.table-medium-red {
+  background-color: #ffe5b4 !important;  // Orange (Misaligned)
+  color: #8a4b00 !important;
+}
+
+.table-strong-red {
+  background-color: #f8d7da !important;  // Red (Severely Misaligned)
+  color: #721c24 !important;
+}
+

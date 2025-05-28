@@ -96,27 +96,27 @@ class SurveyResponsesController < ApplicationController
     return return_to_root 'You are not logged in.' if current_user_id.nil?
     return return_to_root 'Your profile could not be found. Please complete your profile.' unless SurveyProfile.exists?(user_id: current_user_id)
 
-    @survey_response = SurveyResponse.create_from_params current_user_id, survey_response_params
-    session[:survey_id] = @survey_response.id
+    if session[:survey_id].present?
+      @survey_response = SurveyResponse.find_by(id: session[:survey_id])
+      @survey_response.add_from_params current_user_id, survey_response_params
+    else
+      @survey_response = SurveyResponse.create_from_params current_user_id, survey_response_params
+      session[:survey_id] = @survey_response.id
+    end
 
-
-    respond_to do |format|
-      if params[:commit].in?(%w[Save Next])
-        format.html do
-          session[:page_number] += 1
-          redirect_to edit_survey_response_path(@survey_response)
-        end
-      elsif params[:commit] == 'Previous'
-        format.html do
-          session[:page_number] -= 1
-          redirect_to edit_survey_response_path(@survey_response)
-        end
-      else
-        format.html do
-          redirect_to survey_response_url(@survey_response), notice: 'Survey response was successfully created.'
-        end
-        format.json { render :show, status: :created, location: @survey_response }
-      end
+    case params[:commit]
+    when 'Next ➡'
+      session[:page_number] ||= 1
+      session[:page_number] += 1
+      redirect_to edit_survey_response_path(@survey_response)
+    when '⬅ Previous'
+      session[:page_number] ||= 1
+      session[:page_number] = [session[:page_number] - 1, 1].max
+      redirect_to edit_survey_response_path(@survey_response)
+    else # Final Submit
+      session[:page_number] = nil
+      session[:survey_id] = nil
+      redirect_to survey_response_path(@survey_response), notice: 'Survey response was successfully submitted.'
     end
   end
 
@@ -144,21 +144,19 @@ class SurveyResponsesController < ApplicationController
     end
 
     respond_to do |format|
-      if params[:commit].in?(%w[Save Next])
-        format.html do
-          session[:page_number] += 1
-          redirect_to edit_survey_response_path(@survey_response)
-        end
-      elsif params[:commit] == 'Previous'
-        format.html do
-          session[:page_number] -= 1
-          redirect_to edit_survey_response_path(@survey_response)
-        end
+      if params[:commit] == 'Next ➡'
+        session[:page_number] ||= 1
+        session[:page_number] += 1
+        format.html { redirect_to edit_survey_response_path(@survey_response) }
+      elsif params[:commit] == '⬅ Previous'
+        session[:page_number] ||= 1
+        session[:page_number] = [session[:page_number] - 1, 1].max
+        format.html { redirect_to edit_survey_response_path(@survey_response) }
       else
-        format.html do
-          redirect_to survey_response_url(@survey_response), notice: 'Survey response was successfully created.'
-        end
-        format.json { render :show, status: :created, location: @survey_response }
+        session[:page_number] = nil
+        session[:survey_id] = nil
+        format.html { redirect_to survey_response_path(@survey_response), notice: 'Survey response was successfully submitted.' }
+        format.json { render :show, status: :ok, location: @survey_response }
       end
     end
   end
@@ -229,69 +227,81 @@ class SurveyResponsesController < ApplicationController
     return return_to_root('Your profile could not be found. Please complete your profile.') unless SurveyProfile.exists?(user_id: current_user_id)
   
     @survey_profile = SurveyProfile.find_by(user_id: current_user_id)
-    
-    # Check if the user started from an invitation (stored in session)
-    started_from_invitation = session[:invitation].present?
-    
-    # If the user is taking their own survey (new or continuing)
-    unless started_from_invitation
-      # Self-assessment survey
+  
+    # Default prompts for self-assessment
+    default_prompts = [
+      {
+        title: 'Part 1: Leadership Behavior - Management',
+        prompt: 'To what extent do you agree that the following behaviors reflect your personal leadership approach?'
+      },
+      {
+        title: 'Part 1: Leadership Behavior - Interpersonal',
+        prompt: 'To what extent do you agree that the following behaviors reflect your interpersonal leadership style?'
+      },
+      {
+        title: 'Part 2. External Forces',
+        prompt: 'To what extent do you believe these external factors influence your leadership?'
+      },
+      {
+        title: 'Part 3. Organizational Structure',
+        prompt: 'To what extent do you agree that the following characteristics describe your organization’s structure?'
+      },
+      {
+        title: 'Part 4. Values, Attitudes, and Beliefs',
+        prompt: 'To what extent do you agree that the following characteristics represent your perspectives?'
+      },
+      {
+        title: 'Part 4. Values, Attitudes, and Beliefs',
+        prompt: 'To what extent do you agree that the following characteristics apply to your external community (e.g., leadership, management, stakeholders)?'
+      }
+    ]
+  
+    # If there's no @survey_response yet (e.g., on the "new" page), just return defaults
+    if @survey_response.nil?
+      @sections = default_prompts
+      return
+    end
+  
+    # Check if this survey response came from an invitation
+    invitation_claim = InvitationClaim.find_by(survey_response_id: @survey_response.id)
+    if invitation_claim
+      inviter_profile = invitation_claim.invitation.parent_response.profile
+      first_name = inviter_profile.first_name.presence
+      last_name = inviter_profile.last_name.presence
+      full_name = [first_name, last_name].compact.join(' ')
+      inviter_name = full_name.blank? ? 'the leader' : full_name
+  
       @sections = [
         {
           title: 'Part 1: Leadership Behavior - Management',
-          prompt: 'To what extent do you agree that the following behaviors reflect your personal leadership approach?'
+          prompt: "To what extent do you agree that the following behaviors reflect the leadership approach of #{inviter_name}?"
         },
         {
           title: 'Part 1: Leadership Behavior - Interpersonal',
-          prompt: 'To what extent do you agree that the following behaviors reflect your interpersonal leadership style?'
+          prompt: "To what extent do you agree that the following behaviors reflect the interpersonal leadership style of #{inviter_name}?"
         },
         {
           title: 'Part 2. External Forces',
-          prompt: 'To what extent do you believe these external factors influence your leadership?'
+          prompt: "To what extent do you believe these external factors influence the leadership of #{inviter_name}?"
         },
         {
           title: 'Part 3. Organizational Structure',
-          prompt: 'To what extent do you agree that the following characteristics describe your organization’s structure?'
+          prompt: "To what extent do you agree that the following characteristics describe the organization’s structure from the perspective of #{inviter_name}?"
         },
         {
           title: 'Part 4. Values, Attitudes, and Beliefs',
-          prompt: 'To what extent do you agree that the following characteristics represent your perspectives?'
+          prompt: "To what extent do you agree that the following characteristics represent the perspectives of #{inviter_name}?"
         },
         {
           title: 'Part 4. Values, Attitudes, and Beliefs',
-          prompt: 'To what extent do you agree that the following characteristics apply to your external community (e.g., leadership, management, stakeholders)?'
+          prompt: "To what extent do you agree that the following characteristics apply to the external community of #{inviter_name} (e.g., leadership, management, stakeholders)?"
         }
       ]
     else
-      # Evaluation survey (Taken via invitation link)
-      @sections = [
-        {
-          title: 'Part 1: Leadership Behavior - Management',
-          prompt: 'To what extent do you agree that the following behaviors reflect the leadership approach of the leader who requested this survey?'
-        },
-        {
-          title: 'Part 1: Leadership Behavior - Interpersonal',
-          prompt: 'To what extent do you agree that the following behaviors reflect the interpersonal leadership style of the leader who requested this survey?'
-        },
-        {
-          title: 'Part 2. External Forces',
-          prompt: 'To what extent do you believe these external factors influence the leadership of the leader who requested this survey?'
-        },
-        {
-          title: 'Part 3. Organizational Structure',
-          prompt: 'To what extent do you agree that the following characteristics describe the organization’s structure from the perspective of the leader who requested this survey?'
-        },
-        {
-          title: 'Part 4. Values, Attitudes, and Beliefs',
-          prompt: 'To what extent do you agree that the following characteristics represent the perspectives of the leader who requested this survey?'
-        },
-        {
-          title: 'Part 4. Values, Attitudes, and Beliefs',
-          prompt: 'To what extent do you agree that the following characteristics apply to the external community of the leader who requested this survey (e.g., leadership, management, stakeholders)?'
-        }
-      ]
+      @sections = default_prompts
     end
-  end   
+  end
+  
   # rubocop:enable Metrics/MethodLength
   def invalid_form?
     return false if survey_response_params.nil?

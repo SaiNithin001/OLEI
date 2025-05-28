@@ -1,297 +1,209 @@
-<% supervisor_average = average_of_supervisors(@survey_response)%>
-<% supervisee_average = average_of_supervisees(@survey_response)%>
+<% supervisor_average = average_of_supervisors(@survey_response) %>
+<% supervisee_average = average_of_supervisees(@survey_response) %>
 <% combined_view = ["Board Member", "Superintendent", "Assistant/Associate Superintendent", "Principal", "Assistant Principal", "Counselor", "Teacher Leader (Specialist)", "Teacher", "Other Instructional Staff", "Non-Instructional Staff"].include?(@survey_response.profile.role) && !(supervisee_average.nil? && supervisor_average.nil?) %>
+
 <% colors = ["table-slight-red", "table-mild-red", "table-medium-red", "table-strong-red"] %>
 <% difference_text = ["Synergized", "Slightly Misaligned", "Misaligned", "Severely Misaligned"] %>
 <% value_text = ["(1) Leadership", "(2) External Forces", "(3) Organizational Structure", "(4) Values, Attributes, and Beliefs"] %>
+<% choices = ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] %>
+<% sections = @survey_response.questions.map(&:section).uniq %>
+<% answers = sections.map { |section| [section, @survey_response.answers.select { |ans| ans.question.section == section }] }.to_h %>
 
-<div class="container-lg">
+<div class="container-lg mt-4">
+  <h1 class="text-center">Survey Summary</h1>
+  <hr>
+
+  <!-- Synergy Overview -->
   <% if combined_view %>
-    <%# Synergy Header %>
-    <h1 class="text-center">Your Represented Synergy</h1>
-    <br>
-    <div class="row d-flex justify-content-center">
-        <h4>
-          This tetrahedron represents the alignment of the four factors based on your leadership behaviors to align the four factors. 
-        </h4>
-    </div>
-    <div class="row d-flex justify-content-center">
-      <div id="supervisor-tetrahedron" class="col-5 text-center">vs. Supervisor Review</div>
-      <div id="supervisee-tetrahedron" class="col-5 text-center">vs. Supervisee Review</div>
+    <div class="text-center mb-3">
+      <h4>Your Represented Synergy</h4>
+      <p>This tetrahedron represents the alignment of the four factors based on your leadership behaviors to align the four factors. </p>
     </div>
 
-    <% unless supervisor_average.nil? %>
-    <% supervisor_alignment = get_part_difference(@survey_response, supervisor_average) %>
-    <% Rails.logger.info "Supervisor Alignment: #{supervisor_alignment.inspect}" %>
-    <% end %>
+    <div class="row d-flex justify-content-center mb-4">
+      <div id="supervisor-tetrahedron" class="col-md-5 text-center">vs. Supervisor Review</div>
+      <div id="supervisee-tetrahedron" class="col-md-5 text-center">vs. Supervisee Review</div>
+    </div>
 
-    <% unless supervisee_average.nil? %>
-    <% supervisee_alignment = get_supervisee_part_difference(@survey_response) %>
-    <% Rails.logger.info "Supervisee Alignment: #{supervisee_alignment.inspect}" %>
-    <% end %>
+    <% supervisor_alignment = get_part_difference(@survey_response, supervisor_average) unless supervisor_average.nil? %>
+    <% supervisee_alignment = get_supervisee_part_difference(@survey_response) unless supervisee_average.nil? %>
 
-    <%# Synergy Table %>
-    <div class="row d-flex justify-content-center">
-      <div class="col-8">
+    <div class="row justify-content-center mb-5">
+      <div class="col-10">
         <table class="table">
-        <thead>
-          <tr>
-            <th>Key Factor</th>
-            <% unless supervisor_average.nil? %>
-            <th class="text-center">Supervisor</th>
-            <% end %>
+          <thead>
+            <tr>
+              <th>Key Factor</th>
+              <% unless supervisor_average.nil? %>
+                <th class="text-center">Supervisor</th>
+              <% end %>
+              <% unless supervisee_average.nil? %>
+                <th class="text-center">Supervisees</th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% value_text.each_with_index do |value, idx| %>
+              <tr>
+                <td>
+                  <span class="icon" style="font-size: 1.5em; color: <%= ['#F44336', '#2196F3', '#4CAF50', '#FFEB3B'][idx] %>;">
+                    &#9650;
+                  </span>
+                  <%= value %>
+                </td>
+                <% unless supervisor_average.nil? %>
+                <% synergism = supervisor_alignment[idx] %> 
+                <td class="<%= colors[synergism] %>">
+                  <div class="<%= colors[synergism] %> text-center"><%= difference_text[synergism] %> </div>
+                </td>
+                <% end %>
 
-            <% unless supervisee_average.nil? %>
-            <th class="text-center">Supervisees</th>
+                <% unless supervisee_average.nil? %>
+                <% synergism = supervisee_alignment[idx] %>
+                <td class="<%= colors[synergism] %> text-center">
+                  <div class="<%= colors[synergism] %> text-center"><%= difference_text[synergism] %></div>
+                </td>
+                <% end %>
+              </tr>
             <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <h4 class="text-center mb-4">Synergistic Leadership Theory Summary</h4>
+  <% end %>
+
+  <!-- Research Background -->
+  <h3 class="text-center mt-5 mb-3">Research Background</h3>
+  <p class="text-justify">
+    The purpose of this qualitative study was to apply the Synergistic Leadership Theory (SLT) to the leadership experiences of five female supervisors leading successful school districts. The SLT is an interactive theory, which includes female experiences, but it applies to men and women. It provides a framework for leaders to align four factors that impact successful leadership: (a) attitudes, values, and beliefs; (b) leadership behaviors; (c) organizational structure; and (d) external forces. Four research questions guided my study: (a) What are the leadership behaviors of the supervisors? (b) Is the organizational structure of each district aligned with the supervisor’s leadership behaviors? (c) How do the leadership behaviors of the supervisor impact the relations between the district and the external forces? (d) Are the attitudes, values, and beliefs of the supervisor aligned to the attitudes, values, and beliefs of the school board member and the administrative team member?
+  </p>
+
+  <hr>
+
+  <!-- Responses -->
+  <h3 class="text-center mt-5 mb-3">Survey Responses</h3>
+
+  <% sections.each do |section| %>
+    <% answers[section] ||= [] %>
+    <% answers[section] = answers[section].sort_by { |ans| ans.question_id } %>
+    <% collapse_id = "section#{section}" %>
+
+    <div class="text-center section-header mb-2" data-bs-toggle="collapse" data-bs-target="#<%= collapse_id %>" role="button" aria-expanded="false">
+      <h5><%= @sections[section][:title] %></h5>
+      <p><%= @sections[section][:prompt] %></p>
+    </div>
+
+    <div class="collapse" id="<%= collapse_id %>">
+      <table class="table table-striped">
+        <thead class="table-light">
+          <tr>
+            <th>Question</th>
+            <th class="text-center">Response</th>
+            <th class="text-center">Supervisor</th>
+            <th class="text-center">Supervisee</th>
           </tr>
         </thead>
         <tbody>
-          <% value_text.each_with_index do |value, idx| %>
+          <% answers[section].each do |ans| %>
             <tr>
-              <td>
-                <%# Add triangle icon with color based on index %>
-                <span class="icon" style="font-size: 1.5em; color: <%= ['#F44336', '#2196F3', '#4CAF50', '#FFEB3B'][idx] %>;">
-                  &#9650;
-                </span>
-                <%= value %>
+              <td><%= ans.question.text %></td>
+              <td class="text-center">
+                <span class="badge-response <%= %w[sd d a sa][ans.choice] %>"><%= choices[ans.choice] %></span>
               </td>
-              <% unless supervisor_average.nil? %>
-              <% synergism = supervisor_alignment[idx] %> 
-              <td class="<%= colors[synergism] %>">
-                <div class="<%= colors[synergism] %> text-center"><%= difference_text[synergism] %> </div>
+              <td class="text-center">
+                <% supervisor_choice = get_answer(supervisor_average, ans.question.id) rescue "NE" %>
+                <% if supervisor_choice == "NE" %>
+                  <span class="text-muted">NE</span>
+                <% else %>
+                  <span class="badge-response <%= %w[sd d a sa][supervisor_choice] %>">
+                    <%= choices[supervisor_choice] %>
+                  </span>
+                <% end %>
               </td>
-              <% end %>
-
-              <% unless supervisee_average.nil? %>
-              <% synergism = supervisee_alignment[idx] %>
-              <td class="<%= colors[synergism] %> text-center">
-                <div class="<%= colors[synergism] %> text-center"><%= difference_text[synergism] %></div>
+              <td class="text-center">
+                <% supervisee_choice = supervisee_average[ans.question.id].round rescue nil %>
+                <% if supervisee_choice.nil? %>
+                  <span class="text-muted">NE</span>
+                <% else %>
+                  <span class="badge-response <%= %w[sd d a sa][supervisee_choice] %>">
+                    <%= choices[supervisee_choice] %>
+                  </span>
+                <% end %>
               </td>
-              <% end %>
             </tr>
           <% end %>
         </tbody>
       </table>
-      </div>
+      <p class="text-muted mt-1">* NE means not evaluated yet</p>
     </div>
-  <% else %> <%# No synergy view%>
-    <h1 class="text-center">Synergistic Leadership Theory</h1>
   <% end %>
 
-  <%# Research Explanation %>
-  <div class="row d-flex justify-content-center">
-    <div class="col-8">
-      <% if combined_view %>
-        <h3>
-          This tetrahedron represents the alignment of the four factors based on your leadership behaviors to align the four factors.
-        </h3>
+  <!-- Actions -->
+  <h3 class="text-center mt-5 mb-3">Actions & Tools</h3>
+  <div class="row d-flex justify-content-center mb-3">
+    <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mb-4">
+      <% unless user_is_admin? %>
+        <%= link_to "Edit Response", edit_survey_response_path(@survey_response), class: "btn btn-outline-primary" %>
+        <%= button_tag "Create Invitation", data: { parent_survey_response_id: @survey_response.id }, id: "invitation-button", class: "btn btn-outline-success" %>
       <% end %>
-      <p style="text-align:justify;">
-        The purpose of this qualitative study was to apply the Synergistic Leadership Theory (SLT) to the leadership experiences of five female supervisors leading successful school districts. The SLT is an interactive theory, which includes female experiences, but it applies to men and women. It provides a framework for leaders to align four factors that impact successful leadership: (a) attitudes, values, and beliefs; (b) leadership behaviors; (c) organizational structure; and (d) external forces. Four research questions guided my study: (a) What are the leadership behaviors of the supervisors? (b) Is the organizational structure of each district aligned with the supervisor’s leadership behaviors? (c) How do the leadership behaviors of the supervisor impact the relations between the district and the external forces? (d) Are the attitudes, values, and beliefs of the supervisor aligned to the attitudes, values, and beliefs of the school board member and the administrative team member
-      </p>
+      <%= link_to "Download (Excel)", survey_response_path(@survey_response, format: :xlsx), class: "btn btn-outline-primary" %>
+      <%= button_to "Delete", @survey_response, method: :delete, form_class: "btn btn-outline-danger", class: "btn-passthrough" %>
     </div>
   </div>
-  
-  <hr>
 
-  <%# Survey Responses %>
-  <% choices = ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] %>
-  <% sections = @survey_response.questions.map(&:section).uniq %>
-  <% answers = sections.map {|section| [section, @survey_response.answers.select {|ans| ans.question.section == section}]}.to_h%>
-  
-  <div class="row d-flex justify-content-center">
-    <div class="col-9">
-      <br>
-
-      <% sections.each do |section| %>
-        <% answers[section] ||= [] %>
-        <% answers[section] = answers[section].sort_by { |ans| ans.question_id } %>
-        <% collapse_id = "section#{section}" %>
-
-        <div class="section-header"
-          data-bs-toggle="collapse"
-          data-bs-target="#<%= collapse_id %>"
-          aria-expanded="false"
-          aria-controls="<%= collapse_id %>"
-        >
-          <div class="row d-flex justify-content-center">
-            <h4 class="text-center col-8"><%= @sections[section][:title] %></h4>
-          </div>
-
-          <div class="row d-flex justify-content-center">
-            <p class="text-center col-8"><%= @sections[section][:prompt] %></p>
-          </div>
-        </div>
-
-        <div class="collapse" id="<%= collapse_id %>">
-          <table class="table">
-            <thead class="bg-aggie-maroon text-gray-100">
-              <tr>
-                <th>Question</th>
-                <th class="text-center">Response</th>
-                <th class="text-center">Supervisor's Response</th>
-                <th class="text-center">Supervisee's Response</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% answers[section].each do |ans| %>
-                <tr>
-                  <td><%= ans.question.text %></td>
-                  <td class="text-center"><%= choices[ans.choice] %></td>
-
-                  <!-- Supervisor's Response -->
-                  <% if supervisor_average.nil? %>
-                    <td class="text-center">NE</td>
-                  <% else %>
-                    <% supervisor_choice = get_answer(supervisor_average, ans.question.id) %>
-                    <td class="text-center"><%= supervisor_choice == "NE" ? "NE" : choices[supervisor_choice] %></td>
-                  <% end %>
-
-                  <!-- Supervisee's Response -->
-                  <% if supervisee_average.nil? %>
-                    <td class="text-center">NE</td>
-                  <% else %>
-                    <% supervisee_choice = (supervisee_average[ans.question.id] || 0).round() %>
-                    <td class="text-center"><%= supervisee_choice.nil? ? "NE" : choices[supervisee_choice] %></td>
-                  <% end %>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-
-          <!-- Explanation Note -->
-          <p class="text-muted mt-2">*NE implies not evaluated yet</p>
-        </div>
-      <% end %>
+  <div id="invitation-link-container" class="mt-3" style="display: none;">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Your Invitation Link</h5>
+        <p class="card-text"><span id="invitation-link"></span></p>
+        <button class="btn btn-primary" onclick="copyToClipboard()">Copy</button>
+      </div>
     </div>
   </div>
-  <hr>
-
-  <%# this is the view containing the invitation link %>
-    <div id="invitation-link-container" class="mt-4" style="display: none;">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Invitation Link Created. Please save this link for you to share with others who will complete their perceptions of your Leadership.</h5>
-          <p class="card-text">
-            <span id="invitation-link"></span>
-          </p>
-          <button class="btn btn-primary" onclick="copyToClipboard()">Copy Link</button>
-        </div>
-      </div>
-      <hr>
-    </div>
-
-<%# Invitation Button %>
-<div class="row d-flex justify-content-center">
-  <div class="col-8 btn-group" role="group">
-    <% unless user_is_admin? %>
-      <%= link_to "Edit Response",
-          edit_survey_response_path(@survey_response),
-          class: "btn btn-outline-primary" %>
-    
-      
-        <%= button_tag "Create Invitation",
-          data: { parent_survey_response_id: @survey_response.id },
-          id: "invitation-button",
-          class: "btn btn-outline-success"
-        %>
-    <% end %>
-        <%= link_to "Download Response (Excel)", 
-            survey_response_path(@survey_response, 
-            format: :xlsx), class: "btn btn-outline-primary"
-        %>
-        <%= button_to "Delete Response",
-            @survey_response,
-            method: :delete,
-
-            form_class: "btn btn-outline-danger",
-            class: "btn-passthrough"
-      	%>
-      </div>
-    </div>
-    <br>
-
-    <%# Links to go back %>
-    <div class="row d-flex justify-content-center">
-      <div class="col-6 text-center">
-        <div class="row">
-          <% unless !user_is_admin? %>
-          <div class="col-12">
-        <%= link_to "Back to Dashboard", admin_dashboard_path, class: "btn btn-link" %>
-          </div>
-          <% end %>
-          <% unless user_is_admin? %>
-          <div class="col-12">
-        <%= link_to "Back to home", root_path, class: "btn btn-link" %>
-          </div>
-          <% end %>
-        </div>
-      </div>
-      <div>
-    </div>
-
-    <%# show invitation link if it exist %>
-    <script>
-      function copyToClipboard() {
-        var linkText = document.getElementById("invitation-link").innerText;
-        navigator.clipboard.writeText(linkText)
-          .then(() => {
-            alert("Link copied to clipboard!");
-          })
-          .catch((error) => {
-            console.error("Failed to copy link: ", error);
-          });
-      }
-
-      function initializeInvitation() {
-          var invitationButton = document.getElementById('invitation-button');
-          var invitationLinkContainer = document.getElementById('invitation-link-container');
-          var invitationLink = document.getElementById('invitation-link');
-
-          invitationButton.addEventListener('click', function() {
-      var parentSurveyResponseId = this.getAttribute('data-parent-survey-response-id');
-
-      fetch('/invitations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({ parent_survey_response_id: parentSurveyResponseId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        invitationLink.textContent = data.invitation_url;
-        invitationLinkContainer.style.display = 'block';
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-          });
-        }
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initializeInvitation);
-        } else {
-          initializeInvitation();
-        }
-    </script>
 </div>
 
-<%# Load 3D Models %>
+<!-- Invitation Script -->
+<script>
+  function copyToClipboard() {
+    const text = document.getElementById("invitation-link").innerText;
+    navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById('invitation-button');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        fetch('/invitations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ parent_survey_response_id: btn.dataset.parentSurveyResponseId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("invitation-link").textContent = data.invitation_url;
+          document.getElementById("invitation-link-container").style.display = 'block';
+        });
+      });
+    }
+  });
+</script>
+
+<!-- Load Tetrahedrons -->
 <% if combined_view %>
 <script type="module">
-  import { loadModel } from  "tetrahedron"
+  import { loadModel } from "tetrahedron"
 
-  <% unless supervisor_average.nil? %>
-  console.log("Loading Supervisor Tetrahedron: <%= supervisor_alignment.join('_') %>");
-  loadModel("supervisor-tetrahedron", "<%= supervisor_alignment.join('_') %>")
+  <% if supervisor_average %>
+    loadModel("supervisor-tetrahedron", "<%= supervisor_alignment.join('_') %>")
   <% end %>
 
-  <% unless supervisee_average.nil? %>
-  console.log("Loading Supervisee Tetrahedron: <%= supervisee_alignment.join('_') %>");
-  loadModel("supervisee-tetrahedron", "<%= supervisee_alignment.join('_') %>")
+  <% if supervisee_average %>
+    loadModel("supervisee-tetrahedron", "<%= supervisee_alignment.join('_') %>")
   <% end %>
 </script>
 <% end %>

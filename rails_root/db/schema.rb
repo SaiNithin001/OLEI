@@ -17,7 +17,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_12_195415) do
     t.integer "survey_response_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["invitation_id", "survey_profile_id"], name: "index_invitation_claims_on_invitation_id_and_survey_profile_id", unique: true
     t.index ["invitation_id"], name: "index_invitation_claims_on_invitation_id"
     t.index ["survey_profile_id"], name: "index_invitation_claims_on_survey_profile_id"
     t.index ["survey_response_id"], name: "index_invitation_claims_on_survey_response_id"

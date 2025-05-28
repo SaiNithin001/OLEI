@@ -105,12 +105,16 @@ class SurveyProfilesController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def survey_profile_params
-    params.require(:survey_profile).permit(:user_id, :first_name, :last_name, :campus_name, :district_name, :role)
+    params.require(:survey_profile).permit(:user_id, :first_name, :last_name, :campus_name, :district_name, :role, :custom_role)
   end
 
   def invalid_form?
-    survey_profile_params.values.any? { |value| value.nil? || value.empty? }
-  end
+    required_keys = %w[first_name last_name campus_name district_name role]
+  
+    # Check that all required fields are present and non-empty
+    required_keys.any? { |key| survey_profile_params[key].blank? } ||
+      (survey_profile_params['role'] == 'Other Instructional Staff' && survey_profile_params['custom_role'].blank?)
+  end  
 
   def non_unique_user?
     SurveyProfile.find_by(user_id: session[:userinfo]['sub'])
