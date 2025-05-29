@@ -18,7 +18,7 @@ https://elrc-f94dd4361a25.herokuapp.com/
 Clone repository
 
 ```
-git clone https://github.com/tamu-edu-students/OLEI.git
+git clone https://github.com/SaiNithin001/OLEI.git
 ```
 
 Install all dependencies
